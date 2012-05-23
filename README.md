@@ -1,120 +1,89 @@
-GitHub Markup
-=============
+Yeti User Manual
+================
 
-We use this library on GitHub when rendering your README or any other
-rich text file.
-
-Markups
--------
-
-The following markups are supported.  The dependencies listed are required if
-you wish to run the library.
-
-* [.markdown](http://daringfireball.net/projects/markdown/) -- `gem install redcarpet` (https://github.com/tanoku/redcarpet)
-* [.textile](http://www.textism.com/tools/textile/) -- `gem install RedCloth`
-* [.rdoc](http://rdoc.sourceforge.net/) -- `gem install rdoc -v 3.6.1`
-* [.org](http://orgmode.org/) -- `gem install org-ruby`
-* [.creole](http://wikicreole.org/) -- `gem install creole`
-* [.mediawiki](http://www.mediawiki.org/wiki/Help:Formatting) -- `gem install wikicloth`
-* [.rst](http://docutils.sourceforge.net/rst.html) -- `easy_install docutils`
-* [.asciidoc](http://www.methods.co.nz/asciidoc/) -- `brew install asciidoc`
-* [.pod](http://search.cpan.org/dist/perl/pod/perlpod.pod) -- `Pod::Simple::HTML`
-  comes with Perl >= 5.10. Lower versions should install Pod::Simple from CPAN.
-
-
-Contributing
+What is Yeti
 ------------
+Yeti stands for "Yet Extraordinary Test Infrastructure".
+<br>It is rspec-based basic validation test
+<br>*Under development*
 
-Want to contribute? Great! There are two ways to add markups.
+This repository contains tests for [vcap](https://github.com/cloudfoundry/vcap).
 
+## Dependencies
+RVM (Ruby Version Manager) is used to manage different ruby version on unix-based box
+<br>please follow the guideline, https://rvm.io/ to install RVM on your box.
 
-### Commands
+## _Supported Operation System_
+1. Mac OS X 64bit, 10.6 and above
+2. Ubuntu 10.04 LTS 64bit
 
-If your markup is in a language other than Ruby, drop a translator
-script in `lib/github/commands` which accepts input on STDIN and
-returns HTML on STDOUT. See [rest2html][r2h] for an example.
+How to run it
+-------------
+1. ```gerrit-clone ssh://<YOUR-NAME>@reviews.cloudfoundry.org:29418/vcap-yeti```
+2. ```cd vcap-yeti```
+3. ```./update.sh      ## if run admin cases, this step can be skipped```
+4. ```bundle exec rake tests```
+5. At first time, yeti will ask you several questions about
+    - target
+    - test user/test passwd
+    - admin user/admin passwd
+   <br>on Terminal interactively.
+   <br>And save those information into ~/.bvt/config.yml file.
+   <br>Therefore, when running again, yeit will never ask those questions again.
 
-Once your script is in place, edit `lib/github/markups.rb` and tell
-GitHub Markup about it. Again we look to [rest2html][r2hc] for
-guidance:
-
-    command(:rest2html, /re?st(.txt)?/)
-
-Here we're telling GitHub Markup of the existence of a `rest2html`
-command which should be used for any file ending in `rest`,
-`rst`, `rest.txt` or `rst.txt`. Any regular expression will do.
-
-Finally add your tests. Create a `README.extension` in `test/markups`
-along with a `README.extension.html`. As you may imagine, the
-`README.extension` should be your known input and the
-`README.extension.html` should be the desired output.
-
-Now run the tests: `rake`
-
-If nothing complains, congratulations!
-
-
-### Classes
-
-If your markup can be translated using a Ruby library, that's
-great. Check out Check `lib/github/markups.rb` for some
-examples. Let's look at Markdown:
-
-    markup(:markdown, /md|mkdn?|markdown/) do |content|
-      Markdown.new(content).to_html
-    end
-
-We give the `markup` method three bits of information: the name of the
-file to `require`, a regular expression for extensions to match, and a
-block to run with unformatted markup which should return HTML.
-
-If you need to monkeypatch a RubyGem or something, check out the
-included RDoc example.
-
-Tests should be added in the same manner as described under the
-`Commands` section.
-
-
-Installation
------------
-
-    gem install github-markup
-
-
-Usage
+Note:
 -----
+1. And to be compatible with BVT, environment variables are still available in yeti.
+```
+||Environment Variables    ||Function                  ||Example                                ||
+|VCAP_BVT_TARGET           |Declare target environment |VCAP_BVT_TARGET=cloudfoundry.com         |
+|VCAP_BVT_USER             |Declare test user          |VCAP_BVT_USER=pxie@vmware.com            |
+|VCAP_BVT_USER_PASSWD      |Declare test user password |VCAP_BVT_USER_PASSWD=<MY-PASSWORD>       |
+|VCAP_BVT_ADMIN_USER       |Declare admin user         |VCAP_BVT_ADMIN_USER=admin@admin.com      |
+|VCAP_BVT_ADMIN_USER_PASSWD|Declare admin user password|VCAP_BVT_ADMIN_USER_PASSWD=<ADMIN-PASSWD>|
+```
 
-    require 'github/markup'
-    GitHub::Markup.render('README.markdown', "* One\n* Two")
+2. In order to support administrative test case, yeti will ask admin user/admin passwd information.
+   <br>However, yeti will not abuse administrative privilege for every operation,
+   <br>just list users, create normal user, delete normal user which created in test script.
+3. Currently yeti run in serial, you could ```tail -f ~/.bvt/bvt.log``` to get what is going on
 
-Or, more realistically:
+FAQ:
+----
+1. what does "pending" mean and what is the correct number of pending cases that i should see?
+   <br>A: "pending" means your target environment misses some preconditions,
+      usually a service, framework or runtime.
+      <br>The number of pending cases denpends on your target environment and environment variables.
+      - For example, postgreSQL service is not available on dev_setup environment. Therefore,
+      user run yeti against dev_setup environment, there should be some pending cases related
+      to PostgreSQL service, and prompt message like "postgresql service is not available on
+      target environment, #{url}"
+      - On the other hand, mysql service should be available on dev_setup environment. When user
+      run yeti against dev_setup, and get some pending message like "mysql service is not
+      available on target environment, #{url}". That should be a problem.
 
-    require 'github/markup'
-    GitHub::Markup.render(file, File.read(file))
+2. What is done in "./update.sh"?
+   <br>A: Yeti has uploaded all precompiled java apps onto one blobs server. Therefore,
+      <br>Yeti users do not need maven, and build java-based apps locally, just need to sync
+      precompiled JAR/WAR files from blobs.cloudfoundry.com.
+      <br>This action has been done by ./update.sh script automatically, so Yeti users need to
+      run ```./update.sh``` script before running Yeti tests
 
+3. What is example?
+   <br>A: Example is the conception in RSpec. It is entire test unit, and it will has one result,
+      Pass/Failure/Pending.
 
-Testing
--------
+4. Where are binary assets stored?
+   <br>A: Binary assets are stored in blobs.cloudfoundry.com, which is simple Ruby/Sinatra application
+      with Mongodb service
 
-To run the tests:
+5. How do I submit binary assets?
+   <br>A: There are two roles in Yeti project, one is Yeti User, the other is Yeti DEV.
+      - Yeti user just run yeti scripts against any target environment.
+      - Yeti DEV develop yeti scripts
+      <br>Currently only Yeti DEV can submit binary assets
 
-    $ rake
-
-To add tests see the `Commands` section earlier in this
-README.
-
-
-Contributing
-------------
-
-1. Fork it.
-2. Create a branch (`git checkout -b my_markup`)
-3. Commit your changes (`git commit -am "Added Snarkdown"`)
-4. Push to the branch (`git push origin my_markup`)
-5. Create an [Issue][1] with a link to your branch
-6. Enjoy a refreshing Diet Coke and wait
-
-
-[r2h]: http://github.com/github/markup/tree/master/lib/github/commands/rest2html
-[r2hc]: http://github.com/github/markup/tree/master/lib/github/markups.rb#L13
-[1]: http://github.com/github/markup/issues
+6. Where is the log file stored?
+   <br>A: There two level logs, runtime logs and error logs
+      - Runtime log is stored in <YOUR-USER-HOME>/.bvt/bvt.log
+      - Error log is stored in <YOUR-USER-HOME>/.bvt/error.log
